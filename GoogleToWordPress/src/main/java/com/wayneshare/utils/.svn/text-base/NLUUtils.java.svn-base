@@ -1,0 +1,314 @@
+package rb.sh.utils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import rb.asrnlu.object.AnnoObject;
+import rb.sh.common.Pair;
+
+public class NLUUtils {
+
+	public static final Logger LOG = LoggerFactory.getLogger(NLUUtils.class);
+	public static final int chekerLengthMin = 10;
+	public static final int chekerLengthMax = 30;
+
+	public static void main(String args[]) {
+
+		// turn\a-switchon on the light\s-devicename
+		// turn\a-switchoff off the light\s-devicename
+		// what's\a-currentweather the weather in palo\b-cityname
+		// alto\e-cityname
+		// light\s-devicename\a-switchon on
+		// light\s-devicename\a-switchoff off
+		// no\a-no thanks\a-thanks
+
+		// String stringToSearch =
+		// "what's\\a-currentweather\\s-slot1\\a-currentweather1 the weather\\s-devicename in palo\\b-cityname alto\\e-cityname and palo1\\b-cityname alto1\\e-cityname ";
+		String stringToSearch = "what's\\a-asktemp the temperature in celsius\\s-degreeunit in the bedroom\\s-room";
+
+		createAnnoObjFromAnnoSentence(stringToSearch, 1);
+
+		// extractActionPairs(stringToSearch);
+		// extractSlotPairs(stringToSearch);
+		// the pattern we want to search for \b \e slots
+		// extractBeginEndPairs(stringToSearch);
+
+	}
+
+	/**
+	 * new version, revert one annotated sentence into one object contains the
+	 * original sentence, slots and actions
+	 * 
+	 * @param annoSentence
+	 * @return
+	 */
+	public static AnnoObject createAnnoObjFromAnnoSentence(String origSentence,
+			String actionSentence, String slotsSentence, int lineNumber) {
+		origSentence = origSentence.trim();
+		actionSentence = actionSentence.trim();
+		slotsSentence = slotsSentence.trim();
+
+		List<String> actions = new ArrayList<String>();
+		List<Pair> slots = new ArrayList<Pair>();
+
+		//
+		if (StringUtils.isNotBlank(actionSentence)) {
+			String[] actionsA = actionSentence.split("\\t");
+			actions = Arrays.asList(actionsA);
+		}
+
+		//
+		if (StringUtils.isNotBlank(slotsSentence)) {
+			String[] slotsA = slotsSentence.split("\\t");
+			for (int k = 0; k < slotsA.length; k++) {
+				String slotAnno = slotsA[k];
+				// StringUtils.isNotBlank(slotAnno)
+				slotAnno = slotAnno.trim();
+				if (StringUtils.isNotBlank(slotAnno)) {
+					LOG.debug("slotAnnoslotAnnoslotAnnoslotAnnoslotAnnoslotAnno "
+							+ slotAnno);
+					String[] output1 = slotAnno.split("\\\\");
+					if (output1.length == 2)
+						slots.add(new Pair<String, String>(output1[0],
+								output1[1]));
+				}
+			}
+		}
+
+		AnnoObject ab = new AnnoObject(origSentence, actions, slots);
+		ab.print();
+		return ab;
+	}
+
+	/**
+	 * old version revert one annotated sentence into one object contains the
+	 * original sentence, slots and actions
+	 * 
+	 * @param annoSentence
+	 * @return
+	 */
+	public static AnnoObject createAnnoObjFromAnnoSentence(String annoSentence,
+			int lineNumber) {
+		annoSentence = annoSentence.trim();
+		AnnoObject ab = new AnnoObject(annoSentence);
+
+		// split first by " " and "\\"
+		List<String> processL = new ArrayList<String>();
+		String[] output = annoSentence.split(" ");
+		for (int i = 0; i < output.length; i++) {
+			String[] output1 = output[i].split("\\\\");
+			// add back \\
+			if (output1.length >= 2) {
+				for (int k = 1; k < output1.length; k++) {
+					output1[k] = "\\" + output1[k];
+				}
+			}
+			for (int k = 0; k < output1.length; k++) {
+				processL.add(output1[k]);
+			}
+		}
+
+		// print split result
+		// for (String s : processL) {
+		// System.out.print(" - " + s);
+		// }
+		// System.out.println("");
+
+		// find all actions
+		for (String s : processL) {
+			if (s.startsWith("\\a-")) {
+				String name = s.substring(3);
+				ab.getActions().add(name);
+				// if (name.length() > chekerLengthMin && name.length() <=
+				// chekerLengthMax)
+				// LOG.warn("Line "
+				// + StringIntUtils.padLeft(lineNumber + "", 6)
+				// +
+				// " *************** there is an Action name only one or two characters!!! : "
+				// + name);
+			}
+		}
+
+		// find all slots
+		for (int k = 0; k < processL.size(); k++) {
+			String s = processL.get(k);
+			//
+			if (s.startsWith("\\s-")) {
+				String name = s.substring(3);
+				if (name.length() > chekerLengthMin
+						&& name.length() <= chekerLengthMax)
+					LOG.warn("Line "
+							+ StringIntUtils.padLeft(lineNumber + "", 6)
+							+ " *************** there is a slot name only one or two characters!!!    : "
+							+ name);
+				String value = findValueForName(k, processL);
+				ab.getSlots().add(new Pair<String, String>(name, value));
+			}
+		}
+
+		// find all slots of \b \i \e
+		for (int k = 0; k < processL.size(); k++) {
+			String s = processL.get(k);
+			if (s.startsWith("\\b-")) {
+				String name = s.substring(3);
+				if (name.length() > chekerLengthMin
+						&& name.length() <= chekerLengthMax)
+					LOG.warn("Line "
+							+ StringIntUtils.padLeft(lineNumber + "", 6)
+							+ " *************** there is a slot begin name only one r two characters! : "
+							+ name);
+
+				// look next \\e-
+				for (int i = k + 1; i < processL.size(); i++) {
+					if (processL.get(i).startsWith("\\e-")) {
+						String value = findSlotValueForName(k, i, processL);
+						ab.getSlots()
+								.add(new Pair<String, String>(name, value));
+						k = i;
+						break;
+					}
+				}
+			}
+		}
+
+		// find orig sentence
+		ab.setOrigSentence(findOrigSentence(processL));
+
+		// ab.print();
+
+		return ab;
+	}
+
+	private static String findOrigSentence(List<String> processL) {
+		String rt = "";
+		for (int i = 0; i < processL.size(); i++) {
+			if (!processL.get(i).startsWith("\\")) {
+				rt = rt + processL.get(i) + " ";
+			}
+		}
+
+		return rt.trim();
+	}
+
+	private static String findSlotValueForName(int begin, int end,
+			List<String> processL) {
+		String rt = "";
+
+		for (int i = begin; i <= end; i++) {
+			if (processL.get(i).startsWith("\\b-")
+					|| processL.get(i).startsWith("\\i-")) {
+				rt = rt + findValueForName(i, processL) + " ";
+			} else if (processL.get(i).startsWith("\\e-")) {
+				rt = rt + findValueForName(i, processL);
+			}
+		}
+		return rt;
+	}
+
+	private static String findValueForName(int k, List<String> processL) {
+		String rt = null;
+		for (int i = k; i >= 0; i--) {
+			if (!processL.get(i).startsWith("\\")) {
+				rt = processL.get(i);
+				break;
+			}
+		}
+		return rt;
+	}
+
+	// ///////////////////////////////////////////////////////////////////////////////////
+	// regular express way to split. but it has problem
+	// ///////////////////////////////////////////////////////////////////////////////////
+
+	public static List<Pair> extractActionPairs(String input) {
+		List<Pair> rt = new ArrayList<Pair>();
+
+		// the pattern we want to search for slots
+		Pattern p = Pattern.compile("(\\S+\\\\a-\\S+)");
+		// (\\n|\\s)
+		Matcher m = p.matcher(input);
+
+		// if we find a match, get the group
+		while (m.find()) {
+			// we're only looking for one group, so get it
+			String theGroup = m.group();
+			String news = theGroup.trim();
+			// print the group out for verification
+			System.out.println("Slot: " + news);
+			String[] output = news.split("\\\\a-");
+			System.out.println(output[0]);
+			System.out.println(output[1]);
+			Pair<String, String> pp = new Pair<String, String>(output[1],
+					output[0]);
+			rt.add(pp);
+		}
+		return rt;
+	}
+
+	public static List<Pair> extractSlotPairs(String input) {
+		List<Pair> rt = new ArrayList<Pair>();
+
+		// the pattern we want to search for slots
+		Pattern p = Pattern.compile("(\\S+\\\\s-\\S+)");
+		// (\\n|\\s)
+		Matcher m = p.matcher(input);
+
+		// if we find a match, get the group
+		while (m.find()) {
+			// we're only looking for one group, so get it
+			String theGroup = m.group();
+			String news = theGroup.trim();
+			// print the group out for verification
+			System.out.println("Slot: " + news);
+			String[] output = news.split("\\\\s-");
+			System.out.println(output[0]);
+			System.out.println(output[1]);
+			Pair<String, String> pp = new Pair<String, String>(output[1],
+					output[0]);
+			rt.add(pp);
+		}
+		return rt;
+	}
+
+	public static List<Pair> extractBeginEndPairs(String input) {
+		List<Pair> rt = new ArrayList<Pair>();
+		// p = Pattern.compile("(\\S+\\\\b-\\S+).*(\\S+\\\\e-\\S+)");
+		// find all matched \b \e pairs in the sentence
+		Pattern p = Pattern
+				.compile("(\\S+\\\\b-\\S+)([^e]|[^\\\\]e)*(\\S+\\\\e-\\S+)");
+		Matcher m = p.matcher(input);
+		// if we find a match, get the group
+		while (m.find()) {
+			String theGroup = m.group();
+			String news = theGroup.trim();
+			// print the group out for verification
+			System.out.println("Slot: " + news);
+
+			// replace the \b and \e
+			Pattern p1 = Pattern.compile("(\\\\b-\\S+) ");
+			Matcher m1 = p1.matcher(news);
+			while (m1.find()) {
+				// we're only looking for one group, so get it
+				String theGroup1 = m1.group();
+				String news1 = theGroup1.trim();
+				String name = news1.substring(3);
+				// print the group out for verification
+				System.out.println("begin slot name is : " + name);
+				// remove \b-slotname and \e-slotname
+				String value = news.replaceAll("(\\\\b|\\\\e)-" + name, "");
+				System.out.println("slot value is : " + value);
+
+				Pair<String, String> pp = new Pair<String, String>(name, value);
+				rt.add(pp);
+			}
+		}
+		return rt;
+	}
+}

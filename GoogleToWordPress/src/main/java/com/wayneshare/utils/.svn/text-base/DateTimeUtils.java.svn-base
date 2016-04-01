@@ -1,0 +1,44 @@
+package rb.sh.utils;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class DateTimeUtils {
+
+	public static String getTime_MMddHHMMss() {
+		SimpleDateFormat sdfDate = new SimpleDateFormat("MM-dd_HH:mm:ss_");
+		Date now = new Date();
+		String strDate = sdfDate.format(now);
+		return strDate;
+	}
+
+	public static String getTime_MMdd_HHMM_ssSSS() {
+		SimpleDateFormat sdfDate = new SimpleDateFormat("MMdd_HHmm_ssSSS");
+		Date now = new Date();
+		String strDate = sdfDate.format(now);
+		return strDate;
+	}
+
+	public static String getTime_MMddYYYY() {
+		SimpleDateFormat sdfDate = new SimpleDateFormat("MM/dd/YYYY");
+		Date now = new Date();
+		String strDate = sdfDate.format(now);
+		return strDate;
+	}
+
+	
+	public static String getTime_MMdd_HHMM_ss() {
+		SimpleDateFormat sdfDate = new SimpleDateFormat("MMdd_HHmmss");
+		Date now = new Date();
+		String strDate = sdfDate.format(now);
+		return strDate;
+	}
+
+	public static String getCurrentTimeStamp() {
+		SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		Date now = new Date();
+		String strDate = sdfDate.format(now);
+		return strDate;
+	}
+
+}

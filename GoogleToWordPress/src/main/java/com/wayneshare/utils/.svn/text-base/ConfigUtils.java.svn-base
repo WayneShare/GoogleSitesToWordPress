@@ -1,0 +1,226 @@
+package rb.sh.utils;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
+
+import org.apache.commons.configuration.ConfigurationException;
+//import org.apache.commons.configuration.ConfigurationUtils;
+import org.apache.commons.configuration.PropertiesConfiguration;
+import org.apache.commons.configuration.PropertiesConfiguration.PropertiesWriter;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import rb.sh.common.CommonConst;
+
+/**
+ * this class is to read out all the config files
+ * 
+ * @author xiaowei
+ * 
+ */
+public class ConfigUtils {
+
+	public static final Logger LOG = LoggerFactory.getLogger(ConfigUtils.class);
+
+	// this flag is to control the feature is a simple version or a full version
+	// application
+	// the reason put here instead of a external config file,
+	// is we do not want this can be changed from outside after we deploy the
+	// code.
+	public static final boolean fullVesion = true;
+	private static PropertiesConfiguration config = null;
+
+	public static boolean isFullvesion() {
+		return fullVesion;
+	}
+
+	public static void loadConfig() {
+		if (config == null)
+			try {
+				config = new PropertiesConfiguration();
+				config.setEncoding("UTF-8");
+				// 0 in API means no delimiter for
+				// list type values, default is
+				// comma.
+				// config.setListDelimiter('0');
+				config.load(getEnvVar() + CommonConst.S_Slash
+						+ "config.properties");
+				LOG.debug("config base path is at " + config.getBasePath());
+			} catch (ConfigurationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		return;
+	}
+
+	public static String getConfig(String key) {
+		loadConfig();
+		return config.getString(key);
+	}
+
+	public static String getHostName() {
+		loadConfig();
+		return config.getString(CommonConst.CONFIG_TargetHostName);
+	}
+
+	public static int getHostPort() {
+		loadConfig();
+		return Integer.parseInt(config
+				.getString(CommonConst.CONFIG_TargetHostPort));
+	}
+
+	public static String getRootFolder() {
+		loadConfig();
+		return config.getString(CommonConst.CONFIG_RootFolder);
+	}
+
+	public static String getTestDataFolder() {
+		loadConfig();
+		return getRootFolder() + CommonConst.S_Slash
+				+ config.getString(CommonConst.CONFIG_TestDataFolder);
+	}
+
+	public static String getTestAudioFolder() {
+		loadConfig();
+		return getRootFolder() + CommonConst.S_Slash
+				+ config.getString(CommonConst.CONFIG_TestAudioFolder);
+	}
+
+	public static String getTestTempFolder() {
+		loadConfig();
+		return getRootFolder() + CommonConst.S_Slash
+				+ config.getString(CommonConst.CONFIG_TestTempFolder);
+	}
+
+	public static String getTestLogFolder() {
+		loadConfig();
+		return getRootFolder() + CommonConst.S_Slash
+				+ config.getString(CommonConst.CONFIG_TestLogFolder);
+	}
+
+	public static String getASRTestFolder() {
+		loadConfig();
+		return getRootFolder() + CommonConst.S_Slash
+				+ config.getString(CommonConst.CONFIG_ASRTestFolder);
+	}
+
+	public static String getASRTestLogFolder() {
+		loadConfig();
+		return getRootFolder() + CommonConst.S_Slash
+				+ config.getString(CommonConst.CONFIG_ASRTestFolder)
+				+ CommonConst.S_Slash + CommonConst.CONFIG_ASRTestLogFolder;
+	}
+
+
+	public static String getProfileTestFolder() {
+		loadConfig();
+		return getRootFolder() + CommonConst.S_Slash
+				+ config.getString(CommonConst.CONFIG_ProfileTestFolder);
+	}
+
+	public static String getProfileTestLogFolder() {
+		loadConfig();
+		return getRootFolder() + CommonConst.S_Slash
+				+ config.getString(CommonConst.CONFIG_ProfileTestFolder)
+				+ CommonConst.S_Slash + CommonConst.CONFIG_ProfileTestLogFolder;
+	}
+
+	// public static int getMaxSockeDataSize() {
+	// loadConfig();
+	// return
+	// Integer.parseInt(config.getString(CommonConst.CONFIG_MaxSockeDataSize));
+	// }
+
+	public static PropertiesConfiguration loadCaseMeta(String caseName) {
+		PropertiesConfiguration rt = null;
+		try {
+			rt = new PropertiesConfiguration();
+			config.setEncoding("UTF-8");
+			rt.setListDelimiter('0'); // 0 in API means no delimiter for list
+										// type values, default is comma.
+			rt.load(ConfigUtils.getTestDataFolder() + CommonConst.S_Slash
+					+ caseName + CommonConst.S_Slash
+					+ CommonConst.FILE_Case_Meta);
+			LOG.debug("config base path is at " + config.getBasePath());
+		} catch (ConfigurationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return rt;
+	}
+
+	public static Map<String, String> loadPropertiesAsMap(String folderName,
+			String fileName) {
+		Map<String, String> stepMap = new TreeMap<String, String>();
+		PropertiesConfiguration config = null;
+		try {
+
+			config = new PropertiesConfiguration();
+			config.setEncoding("UTF-8");
+
+			// config.setListDelimiter('|');
+			config.setListDelimiter('0'); // 0 in API means no delimiter for
+											// list type values, default is
+											// comma.
+			config.load(folderName + CommonConst.S_Slash + fileName);
+			Iterator<String> keys = config.getKeys();
+			while (keys.hasNext()) {
+				String key = keys.next();
+				stepMap.put(key, config.getString(key));
+				// LOG.debug("key and value: " + key + " " +
+				// config.getString(key));
+			}
+			LOG.debug("read out the property items size: " + stepMap.size());
+		} catch (ConfigurationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return stepMap;
+	}
+
+	public static boolean writePropertyFile(Map<String, String> data,
+			String fileName) {
+
+		FileWriter writer;
+		try {
+			writer = new FileWriter(new File(fileName));
+			PropertiesWriter propWriter = new PropertiesConfiguration.PropertiesWriter(
+					writer, ';');
+			propWriter.setCurrentSeparator(" = ");
+
+			Iterator<String> iterator = data.keySet().iterator();
+			while (iterator.hasNext()) {
+				String key = (String) iterator.next();
+				if (StringUtils.isNotBlank(key)) {
+					propWriter.writeProperty(key, data.get(key));
+				}
+			}
+			propWriter.close();
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return true;
+		// return FileFolderUtils.writeLineByLineToFile(dataL, fileName);
+	}
+
+	public static String getEnvVar() {
+		Map<String, String> env = System.getenv();
+		for (String envName : env.keySet()) {
+			// System.out.format("%s=%s%n", envName, env.get(envName));
+			if (CommonConst.SYS_SHFOLDER.equalsIgnoreCase(envName))
+				return env.get(envName);
+		}
+		LOG.error("SHFOLDER not found in env settings!");
+		System.exit(1);
+		return "";
+	}
+
+}

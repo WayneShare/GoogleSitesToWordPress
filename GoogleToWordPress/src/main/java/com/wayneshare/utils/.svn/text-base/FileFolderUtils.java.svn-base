@@ -1,0 +1,513 @@
+package rb.sh.utils;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileFilter;
+import java.io.FileWriter;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.TreeMap;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import org.apache.commons.io.filefilter.NotFileFilter;
+import org.apache.commons.io.filefilter.TrueFileFilter;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import rb.sh.common.CommonConst;
+
+import com.csvreader.CsvWriter;
+
+import java.text.SimpleDateFormat;
+
+public class FileFolderUtils {
+	public static final Logger LOG = LoggerFactory
+			.getLogger(FileFolderUtils.class);
+
+	// testAnnoResult
+	/**
+	 * this one read text file to a list of pairs key and value are seperated by
+	 * the tab in each line: key1 value1 key2 value2 key3 value3
+	 * 
+	 * @param referenceFileName
+	 * @return
+	 */
+	public static TreeMap<String, String> readFileAsTabSeperatedPairs(
+			String referenceFileName) {
+		TreeMap<String, String> rt = new TreeMap<String, String>();
+		List<String> lineList = readFileAsStringList(referenceFileName);
+		for (String line : lineList) {
+			String[] pairs = line.split("\\t");
+			if (pairs != null && pairs.length == 2) {
+				rt.put(pairs[0].trim(), pairs[1].trim());
+				// LOG.debug("in reference file found pair: " + pairs[0].trim()
+				// + " ==== " + pairs[1].trim());
+			}
+		}
+		return rt;
+	}
+
+	public static List<String> readFileAsStringList(String filename) {
+		String fileContent = readFileAsString(filename);
+		String[] lines = fileContent.split("\\r?\\n");
+		return Arrays.asList(lines);
+	}
+
+	public static String readFileAsString(String filename) {
+
+		String str = null;
+		try {
+			str = FileUtils.readFileToString(new File(filename));
+			LOG.info("readFileAsString : " + filename);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return str;
+	}
+
+	public static byte[] readFileAsBin(String filename) {
+		byte[] binData = null;
+		try {
+			Path path = Paths.get(filename);
+			binData = Files.readAllBytes(path);
+			// LOG.debug("readFileAsBin read file : " + filename);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return binData;
+	}
+
+	/*
+	 * for test use only, if user input a wav file name we try to read a file
+	 * and get the byte data to send
+	 */
+
+	public static byte[] readFileAsBin(String folderName, String fileName) {
+		byte[] rt = null;
+		if (!StringUtils.isBlank(fileName)) {
+			rt = FileFolderUtils.readFileAsBin(folderName + CommonConst.S_Slash
+					+ fileName);
+
+		}
+		return rt;
+	}
+
+	public static boolean writeBinToFile(byte[] binData, String filename) {
+		boolean rt = false;
+		try {
+			Path path = Paths.get(filename);
+
+			Files.write(path, binData); // creates, overwrites
+			LOG.info("writeBinToFile saved as file : " + filename);
+			path = null;
+			rt = true;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return rt;
+	}
+
+	public static String writeTextToFile(String data, String fileName) {
+		String rt = null;
+		try {
+			// Path path = Paths.get(filename);
+			// Files.write(path, data); // creates, overwrites
+			// Assume default encoding.
+			FileWriter fileWriter = new FileWriter(fileName);
+
+			// Always wrap FileWriter in BufferedWriter.
+			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+
+			bufferedWriter.write(data);
+
+			// Always close files.
+			bufferedWriter.close();
+			// Or we could just do this:
+			// ex.printStackTrace();
+
+			LOG.info("writeTextToFile saved as file : " + fileName);
+			rt = fileName;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return rt;
+	}
+
+	public static boolean writeTextToCSV(List<String> data, String fileName) {
+
+		boolean rt = false;
+		try {
+			CsvWriter writer = new CsvWriter(new FileWriter(fileName), '#');
+			// feed in your array (or convert your data to an array)
+			for (String s : data) {
+				String[] entries = s.split("#");
+				writer.writeRecord(entries, true);
+			}
+			writer.close();
+
+			LOG.info("writeTextToCSV saved as file : " + fileName);
+			rt = true;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return rt;
+
+	}
+	/**
+	 * with append or not feature 
+	 * @param data
+	 * @param fileName
+	 * @param append
+	 * @return
+	 */
+	public static boolean writeTextToCSV(List<String> data, String fileName, boolean append) {
+
+		boolean rt = false;
+		try {
+			CsvWriter writer = new CsvWriter(new FileWriter(fileName, append), ',');
+			// feed in your array (or convert your data to an array)
+			for (String s : data) {
+				String[] entries = s.split("#");
+				writer.writeRecord(entries, true);
+			}
+			writer.close();
+
+			LOG.info("writeTextToCSV saved as file : " + fileName);
+			rt = true;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return rt;
+
+	}
+	
+	
+
+	public static boolean writeLineByLineToFile(List<String> data,
+			String fileName) {
+
+		boolean rt = false;
+		try {
+			// Path path = Paths.get(filename);
+			// Files.write(path, data); // creates, overwrites
+			// Assume default encoding.
+			FileWriter fileWriter = new FileWriter(fileName);
+
+			// Always wrap FileWriter in BufferedWriter.
+			BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+
+			for (String s : data) {
+				bufferedWriter.write(s);
+				bufferedWriter.newLine();
+			}
+			// Always close files.
+			bufferedWriter.close();
+			// Or we could just do this:
+			// ex.printStackTrace();
+
+			LOG.info("writeTextToFile saved as file : " + fileName);
+			rt = true;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return rt;
+	}
+
+	public static String createFolder(String folderName) {
+		File file = new File(folderName);
+		if (!file.exists()) {
+			if (file.mkdir()) {
+				LOG.info("Directory is created : " + folderName);
+			} else {
+				LOG.warn("Failed to create directory : " + folderName);
+			}
+		}
+
+		return folderName;
+	}
+
+	public static String createFolders(String foldersName) {
+
+		File file = new File(foldersName);
+		if (!file.exists()) {
+			if (file.mkdirs()) {
+				// LOG.debug("Directory are created!");
+			} else {
+				LOG.error("Failed to create directory : " + foldersName);
+			}
+		}
+
+		return foldersName;
+	}
+
+	public static File getFile(String fileFullName) {
+		File file = null;
+		file = new File(fileFullName);
+		if (!file.exists()) {
+			LOG.error("File not found: " + fileFullName);
+		}
+		return file;
+	}
+
+	/**
+	 * list only sub folder under one folder
+	 * 
+	 * @param folderName
+	 * @return
+	 */
+	public static List<String> listSubFolders(String folderName) {
+		File dir = new File(folderName);
+		String[] files = dir.list(DirectoryFileFilter.INSTANCE);
+		// for (int i = 0; i < files.length; i++) {
+		// LOG.debug(files[i]);
+		// }
+		List<String> rtList = Arrays.asList(files);
+		rtList = removeUnwantedNames(rtList);
+
+		Collections.sort(rtList);
+		return rtList;
+	}
+
+	public static List<String> removeUnwantedNames(List<String> immutableL) {
+		List<String> rtL = new ArrayList<String>();
+
+		for (int i = 0; i < immutableL.size(); i++) {
+			if (CommonConst.FOLDER_SVN.equalsIgnoreCase(immutableL.get(i))) {
+			} else {
+				rtL.add(immutableL.get(i));
+			}
+		}
+		return rtL;
+	}
+
+	public static List<File> findAllSubDirs(File dir) {
+
+		List<File> files = (List<File>) FileUtils.listFilesAndDirs(dir,
+				new NotFileFilter(TrueFileFilter.INSTANCE),
+				DirectoryFileFilter.DIRECTORY);
+		/*
+		 * try { for (File file : files) { if (file.isDirectory()) {
+		 * LOG.debug("directory:" + file.getCanonicalPath()); } else {
+		 * LOG.debug("     file:" + file.getCanonicalPath()); } } } catch
+		 * (IOException e) { e.printStackTrace(); }
+		 */
+
+		// remove unwanted names .svn
+		List<File> rtL = new ArrayList<File>();
+		for (int i = 0; i < files.size(); i++) {
+			if (files.get(i).getAbsolutePath().contains(CommonConst.FOLDER_SVN)) {
+				// LOG.debug("ignore a svn folder : " +
+				// files.get(i).getAbsolutePath());
+			} else {
+				// LOG.debug("Not ignore a svn folder : " +
+				// files.get(i).getAbsolutePath());
+				rtL.add(files.get(i));
+			}
+		}
+
+		return rtL;
+	}
+
+	public static boolean isFolderExisting(String fullFolderName) {
+		return Files.isDirectory(Paths.get(fullFolderName));
+	}
+
+	public static boolean isFileExisting(String file) {
+		File aa = new File(file);
+		// try {
+		// LOG.debug("isFileExisting " + aa.getCanonicalPath() );
+		// } catch (IOException e) {
+		// TODO Auto-generated catch block
+		// e.printStackTrace();
+		// }
+		return aa.exists();
+	}
+
+	public static boolean isFileInList(String filename, List<File> enrollmentFiles) {
+		for (File f : enrollmentFiles) {
+			if (f.getName().equalsIgnoreCase(filename))
+				return true;
+		}
+		return false;
+	}
+
+	// //////////////////////////////////////////////////////////////////////
+	// //////////////////////////////////////////////////////////////////////
+	// //////////////////////////////////////////////////////////////////////
+
+	/**
+	 * find file name list under a folder , which end with ext
+	 * 
+	 * @param folderName
+	 * @param filePattern
+	 * @return
+	 */
+	public static List<String> findFileNamesByPatternInFolder(
+			String folderName, String filePattern) {
+		List<String> rtL = new ArrayList<String>();
+		List<File> rtList = findFilesByRegInFolder(new File(folderName),
+				filePattern);
+		for (File f : rtList) {
+			// LOG.debug("Found file: " + f.getName());
+			rtL.add(f.getName());
+		}
+		Collections.sort(rtL);
+		return rtL;
+	}
+
+	public static List<File> findFilefromNameList(List<String> list) {
+
+		List<File> rtList = new ArrayList<File>();
+		for (String f : list) {
+			// LOG.debug("Found file: " + f.getName());
+			rtList.add(new File(f));
+		}
+		Collections.sort(rtList);
+		return rtList;
+
+	}
+
+	public static List<File> findFilesByRegInFolder(File dir, String reg) {
+
+		// FileFilter fnf = new WildcardFileFilter(reg);
+		FilenameFilter fnf = new FileRegFilter(reg);
+		File[] rt = dir.listFiles(fnf);
+		if (rt == null)
+			return null;
+		List<File> rtList = Arrays.asList(rt);
+		Collections.sort(rtList);
+		return rtList;
+	}
+
+	public static List<File> findFilesByWildCardInFolder(File dir, String reg) {
+
+		FileFilter fnf = new WildcardFileFilter(reg);
+		// FilenameFilter fnf = new FileRegFilter(reg);
+		File[] rt = dir.listFiles(fnf);
+		if (rt == null)
+			return null;
+		List<File> rtList = Arrays.asList(rt);
+		Collections.sort(rtList);
+		return rtList;
+	}
+
+	public static List<File> findAllFilesByExtensionUnderFolder(File dir,
+			String[] exts, boolean includeSubFolder) {
+		List<File> rtList = (List<File>) FileUtils.listFiles(dir, exts,
+				includeSubFolder);
+		return rtList;
+	}
+
+	/**
+	 * find a File object list for a folder with end with same ext
+	 * 
+	 * @param folderName
+	 * @param ext
+	 * @return
+	 */
+	public static List<File> findEndWithFileListInFolder(String folderName,
+			String ext) {
+		// FileUtils.listFiles(arg0, arg1, arg2).listFiles
+
+		File dir = new File(folderName);
+		FilenameFilter fnf = new FileExtFilter(ext);
+		File[] rt = dir.listFiles(fnf);
+		if (rt == null)
+			return null;
+		List<File> rtList = Arrays.asList(rt);
+		Collections.sort(rtList);
+		return rtList;
+	}
+
+	public static List<File> findStartWithFileListInFolder(String folderName,
+			String ext) {
+		// FileUtils.listFiles(arg0, arg1, arg2).listFiles
+
+		File dir = new File(folderName);
+		FilenameFilter fnf = new FileStartFilter(ext);
+		File[] rt = dir.listFiles(fnf);
+		if (rt == null)
+			return null;
+		List<File> rtList = Arrays.asList(rt);
+		Collections.sort(rtList);
+		return rtList;
+	}
+
+	/**
+	 * File name filter class accept a ext
+	 * 
+	 * @author xiaowei
+	 * 
+	 */
+	private static class FileExtFilter implements FilenameFilter {
+
+		private String ext;
+
+		public FileExtFilter(String ext) {
+			this.ext = ext.toLowerCase();
+		}
+
+		@Override
+		public boolean accept(File dir, String name) {
+			return name.toLowerCase().endsWith(ext);
+		}
+
+	}
+
+	private static class FileStartFilter implements FilenameFilter {
+
+		private String ext;
+
+		public FileStartFilter(String ext) {
+			this.ext = ext.toLowerCase();
+		}
+
+		@Override
+		public boolean accept(File dir, String name) {
+			return name.toLowerCase().startsWith(ext);
+		}
+
+	}
+
+	private static class FileRegFilter implements FilenameFilter {
+
+		private String reg;
+
+		public FileRegFilter(String regu) {
+			this.reg = regu.toLowerCase();
+		}
+
+		@Override
+		public boolean accept(File dir, String name) {
+			return name.toLowerCase().matches(reg);
+			// if (name.toLowerCase().startsWith("caseflowrealtime")
+			// && name.toLowerCase().endsWith("csv")) {
+
+		}
+
+	}
+
+	public static long getFileLastModifiedDate(String fileFullName) {
+		File file = new File(fileFullName);
+		return file.lastModified();
+	}
+
+	public static String getSpeakerName(String fileName) {
+			//LOG.debug(" fileName is " + fileName);
+			String[] sp = fileName.split("_");
+			return sp[0];
+		}
+
+}

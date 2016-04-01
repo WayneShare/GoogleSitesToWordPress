@@ -1,0 +1,176 @@
+package rb.sh.utils;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * some string related process
+ * 
+ * @author xiaowei
+ * 
+ */
+public class StringIntUtils {
+
+	public static final Logger LOG = LoggerFactory
+			.getLogger(StringIntUtils.class);
+	private final static String em = "_empty";
+
+	public static boolean isNotJQGridEmpty(String s) {
+		if (StringUtils.isBlank(s) || em.equalsIgnoreCase(s)) {
+			return false;
+		} else
+			return true;
+	}
+
+	public static boolean isStringTrue(String ash) {
+		return StringUtils.isNotBlank(ash) && ash.equalsIgnoreCase("true");
+	}
+
+	public static boolean isValidNatureInt(Integer i) {
+		return (i != null && i.intValue() > -1);
+	}
+
+	// pad with " " to the right to the given length (n)
+	public static String padRight(String s, int n) {
+		// if(s
+		return String.format("%1$-" + n + "s", s);
+	}
+
+	// pad with " " to the left to the given length (n)
+	public static String padLeft(String s, int n) {
+		return String.format("%1$" + n + "s", s);
+	}
+
+	public static String floatToString(float f) {
+		return String.format("%.2f", f);
+	}
+
+	public static String floatToString(double f) {
+		return String.format("%.2f", f);
+	}
+
+	public static String floatToString3(float f) {
+		return String.format("%.3f", f);
+	}
+
+	public static String floatToString3(double f) {
+		return String.format("%.3f", f);
+	}
+
+	public static String removeLastChar(String str) {
+		if (str.length() > 0) {
+			str = str.substring(0, str.length() - 1);
+		}
+		return str;
+	}
+
+	public static String floatToPercent(double d) {
+		return String.format("%.0f%%", d * 100);
+	}
+
+	public static String removeSpaces(String input) {
+		if (StringUtils.isNotEmpty(input)) {
+			input = input.replaceAll("\\s+", " ");
+			return input.trim();
+		} else
+			return input;
+	}
+
+	public static String removeSpacesAndLowerCase(String input) {
+		if (StringUtils.isNotEmpty(input)) {
+			StringUtils.lowerCase(input);
+			input = input.replaceAll("\\s+", " ");
+			return input.trim();
+		} else
+			return input;
+	}
+
+	public static String extractSystemName(String header) {
+		// Siri:1-Lights on (Turn the kitchen lights on):Domain: Light Task:
+		// Turn on the lights Command: 1-Lights on (Turn the kitchen lights on),
+		if (StringUtils.isNotBlank(header)) {
+			String[] splits = header.split(":");
+			if (splits.length > 0)
+				return splits[0];
+		}
+		return "NA";
+
+	}
+
+	public static String extractReferenceSentence(String header) {
+		// Siri:1-Lights on (Turn the kitchen lights on):Domain: Light Task:
+		// Turn on the lights Command: 1-Lights on (Turn the kitchen lights on),
+		if (StringUtils.isNotBlank(header)) {
+			String[] splits = header.split(":");
+			if (splits.length > 1)
+				return StringIntUtils.removeSpaces(splits[1]);
+		}
+		return "NA";
+	}
+
+	public static String extractSentenceID(String header) {
+		// Siri:1-Lights on (Turn the kitchen lights on):Domain: Light Task:
+		// Turn on the lights Command: 1-Lights on (Turn the kitchen lights on),
+		if (StringUtils.isNotBlank(header)) {
+			String[] splits = header.split(":");
+			if (splits.length > 1)
+				return splits[1].split("-")[0];
+		}
+		return "NA";
+
+	}
+
+	public static String extractDomain(String header) {
+		// Siri:1-Lights on (Turn the kitchen lights on):Domain: Light Task:
+		// Turn on the lights Command: 1-Lights on (Turn the kitchen lights on),
+		if (StringUtils.isNotBlank(header)) {
+			String[] splits = header.split(":");
+			if (splits.length > 1) {
+				return StringIntUtils.removeSpaces(splits[3]).replace("Task",
+						"Domain");
+			}
+		}
+		return "NA";
+	}
+
+	public static String lookUpDomainByID(String id) {
+		String domain = "NA";
+		switch (id) {
+		case "1":
+		case "2":
+		case "3":
+		case "4":
+			domain = "Light Domain";
+			break;
+		case "5":
+		case "6":
+		case "7":
+		case "8":
+		case "9":
+			domain = "Temperature Domain";
+			break;
+		case "10":
+		case "11":
+			domain = "Room Domain";
+			break;
+		case "12":
+		case "13":
+		case "14":
+		case "15":
+			domain = "Weather Domain";
+			break;
+
+		case "16":
+		case "17":
+			domain = "Self-awareness Domain";
+			break;
+
+		default:
+			domain = "NA";
+			break;
+		}
+		return domain;
+	}
+
+}

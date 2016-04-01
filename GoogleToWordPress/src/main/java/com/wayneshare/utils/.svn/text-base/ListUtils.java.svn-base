@@ -1,0 +1,33 @@
+package rb.sh.utils;
+
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.configuration.PropertiesConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class ListUtils {
+
+	public static final Logger LOG = LoggerFactory.getLogger(ListUtils.class);
+
+	public static String findKeyByValueInMap(
+			HashMap<String, String> audioTextPairs, String origSentence) {
+		String rt = null;
+		Iterator it = audioTextPairs.entrySet().iterator();
+		while (it.hasNext()) {
+			Map.Entry pair = (Map.Entry) it.next();
+			if (origSentence.equalsIgnoreCase((String) pair.getValue())) {
+				rt = (String) pair.getKey();
+				break;
+			}
+		}
+
+		LOG.debug("search audio for sentence -" + origSentence
+				+ "-, result is -" + rt + "-");
+		return rt;
+	}
+
+}

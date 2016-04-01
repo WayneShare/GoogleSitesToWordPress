@@ -1,0 +1,25 @@
+package rb.sh.utils;
+
+public class ThreadUtils {
+
+	public static void sleep_s(int seconds) {
+		try {
+			Thread.sleep(seconds * 1000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return;
+	}
+
+	public static void sleep_ms(int mseconds) {
+		try {
+			Thread.sleep(mseconds);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return;
+	}
+
+}

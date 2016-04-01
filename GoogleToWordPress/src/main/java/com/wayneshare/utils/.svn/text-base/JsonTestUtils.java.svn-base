@@ -1,0 +1,234 @@
+package rb.sh.utils;
+
+import java.io.IOException;
+import java.io.StringWriter;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import rb.asrnlu.json.ASRTestDefine;
+import rb.profile.json.ProfileTestDefine;
+import rb.sh.common.CommonConst;
+import rb.sh.test.session.json.CaseAudioMap;
+import rb.sh.test.session.json.CaseFlowDefine;
+import rb.sh.test.session.json.SessionDefine;
+import rb.sh.test.session.json.expected.CaseExpectedResults;
+import rb.sh.test.session.json.expected.ExpectedResult;
+
+import com.fasterxml.jackson.core.JsonGenerationException;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+public class JsonTestUtils {
+
+	public static final Logger LOG = LoggerFactory
+			.getLogger(JsonTestUtils.class);
+
+	private static ObjectMapper objectMapper = new ObjectMapper();
+	static {
+		objectMapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS,
+				true);
+	}
+
+	public static String objectToJsonString(Object cfd) {
+
+		// convert Object to json string
+
+		// configure Object mapper for pretty print
+		objectMapper.configure(SerializationFeature.INDENT_OUTPUT, true);
+
+		// writing to console, can write to any output stream such as file
+		StringWriter stringRT = new StringWriter();
+		try {
+			objectMapper.writeValue(stringRT, cfd);
+		} catch (JsonGenerationException e) {
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		// LOG.debug("object to JSON is: " + stringRT);
+		return stringRT.toString();
+	}
+
+	// /////////////////////////////////////////////////////////////////////////////
+	// /////////////////////////////////////////////////////////////////////////////
+	// /////////////////////////////////////////////////////////////////////////////
+
+	public static SessionDefine jsonFileToSessionDefine(String filename) {
+
+		String filecontent = FileFolderUtils.readFileAsString(filename);
+		SessionDefine rt = null;
+		// convert json string to object
+		try {
+			rt = objectMapper.readValue(filecontent, SessionDefine.class);
+		} catch (JsonParseException e) {
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return rt;
+	}
+
+	public static CaseFlowDefine jsonFileToCaseFlowDefine(String fileFullName) {
+
+		String filecontent = FileFolderUtils.readFileAsString(fileFullName);
+		CaseFlowDefine rt1 = null;
+
+		// convert json string to object
+		try {
+			rt1 = objectMapper.readValue(filecontent, CaseFlowDefine.class);
+			rt1.setJsonText(filecontent);
+			rt1.setJsonFullName(fileFullName);
+		} catch (JsonParseException e) {
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return rt1;
+	}
+
+	public static CaseAudioMap jsonFileToCaseAudioMap(String filename) {
+
+		String filecontent = FileFolderUtils.readFileAsString(filename);
+		CaseAudioMap rt = null;
+		// convert json string to object
+		try {
+			rt = objectMapper.readValue(filecontent, CaseAudioMap.class);
+		} catch (JsonParseException e) {
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		return rt;
+	}
+
+	public static CaseExpectedResults jsonFileToCaseExpectedResults(
+			String fileFullName) {
+
+		String filecontent = FileFolderUtils.readFileAsString(fileFullName);
+		CaseExpectedResults cer = null;
+
+		// convert json string to object
+		try {
+			cer = objectMapper
+					.readValue(filecontent, CaseExpectedResults.class);
+			// rt1.setJsonText(filecontent);
+			// rt1.setJsonFullName(fileFullName);
+		} catch (JsonParseException e) {
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		// make validate check for logic expression in ER
+		if (cer != null) {
+			for (ExpectedResult er : cer.getExpectedResultList()) {
+				// do result json validation check
+
+				String valRt = "";
+				if (StringUtils.isNotBlank(er.getSuccessCriteriaP())) {
+					valRt = er.validateSuccessCriteria(CommonConst.S_prompt,
+							cer);
+					if (!CommonConst.S_success.equalsIgnoreCase(valRt)) {
+						// prompt ID wrong in expect result formula
+						LOG.error("We found a SuccessCriteriaP validate - prompt error in the "
+								+ fileFullName);
+						LOG.error(valRt);
+						cer = null;
+					}
+				} else {
+					LOG.error("Failed found the SuccessCriteriaP in ExpectResult");
+				}
+
+				if (StringUtils.isNotBlank(er.getSuccessCriteriaA())) {
+					valRt = er.validateSuccessCriteria(CommonConst.S_action,
+							cer);
+					if (!CommonConst.S_success.equalsIgnoreCase(valRt)) {
+						LOG.error("We found a SuccessCriteriaA validate - action error in the "
+								+ fileFullName);
+						LOG.error(valRt);
+						// action/slot/value ID wrong in expect result formula
+						cer = null;
+					}
+				} else {
+					LOG.error("Failed found the SuccessCriteriaA in ExpectResult");
+				}
+
+				if (StringUtils.isNotBlank(er.getSuccessCriteriaS())) {
+					valRt = er.validateSuccessCriteria(CommonConst.S_slot, cer);
+					if (!CommonConst.S_success.equalsIgnoreCase(valRt)) {
+						LOG.error("We found a SuccessCriteriaS validate - slot error in the "
+								+ fileFullName);
+						LOG.error(valRt);
+						// action/slot/value ID wrong in expect result formula
+						cer = null;
+					}
+				} else {
+					LOG.error("Failed found the SuccessCriteriaS in ExpectResult");
+				}
+
+			}
+		}
+
+		return cer;
+	}
+
+	public static ASRTestDefine jsonFileToASR_TestDefine(String filename) {
+		String filecontent = FileFolderUtils.readFileAsString(filename);
+		ASRTestDefine rt = null;
+		// convert json string to object
+		if (StringUtils.isNotBlank(filecontent)) {
+			try {
+				rt = objectMapper.readValue(filecontent, ASRTestDefine.class);
+			} catch (JsonParseException e) {
+				e.printStackTrace();
+			} catch (JsonMappingException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return rt;
+	}
+
+	public static ProfileTestDefine jsonFileToProfile_TestDefine(String filename) {
+		String filecontent = FileFolderUtils.readFileAsString(filename);
+
+		ProfileTestDefine rt = null;
+		if (StringUtils.isNotBlank(filecontent)) {
+			// convert json string to object
+			try {
+				rt = objectMapper.readValue(filecontent,
+						ProfileTestDefine.class);
+			} catch (JsonParseException e) {
+				e.printStackTrace();
+			} catch (JsonMappingException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return rt;
+	}
+
+}
